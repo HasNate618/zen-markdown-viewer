@@ -843,10 +843,8 @@ function render() {
       mermaid.run({ nodes: document.querySelectorAll('.mermaid') });
     } catch(e) { /* fallback */ }
 
-    /* Force SVG to fill container width */
+    /* Size SVG to fit container width, let height follow aspect ratio */
     document.querySelectorAll('.mermaid svg').forEach(svg => {
-      svg.removeAttribute('width');
-      svg.style.width = '100%';
       svg.style.maxWidth = '100%';
       svg.style.height = 'auto';
     });
