@@ -936,11 +936,14 @@ function render() {
   };
 
   const openMaximize = (data) => {
-    const svgStr = data.el ? data.el.outerHTML : data.source;
     const ov = document.getElementById('mermaid-overlay');
     const content = ov.querySelector('.m-scale');
-    content.innerHTML = svgStr;
-    /* reattach svg so scripts/defs work */
+    content.innerHTML = '';
+    if (data.el) {
+      content.appendChild(data.el.cloneNode(true));
+    } else {
+      content.textContent = data.source;
+    }
     const svg = content.querySelector('svg');
     if (svg) {
       svg.style.setProperty('max-width', '90vw', 'important');
