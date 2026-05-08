@@ -153,7 +153,7 @@ pre {
   background: rgba(6,6,6,0.4) !important;
   border: 1px solid var(--code-border);
   border-radius: 12px;
-  padding: 0.5rem 0.75rem;
+  padding: 0.35rem 0.75rem;
   margin-bottom: 0.75em;
   overflow-x: auto;
   position: relative;
@@ -165,6 +165,7 @@ pre code {
   font-size: 0.85em;
   color: var(--text-primary);
   line-height: 1;
+  display: block;
   border: none;
   border-radius: 0;
   counter-reset: line;
@@ -196,8 +197,8 @@ pre code .hljs-line::before {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 0 0.35rem;
-  margin-bottom: 0.35rem;
+  padding: 0 0 0.15rem;
+  margin-bottom: 0.15rem;
   border-bottom: 1px solid var(--border);
   font-size: 0.75rem;
 }
@@ -224,6 +225,22 @@ pre code .hljs-line::before {
 
 /* Table header (reuse same style as code-header) */
 .table-wrap { position: relative; }
+.table-copy {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0;
+  z-index: 1;
+  line-height: 1;
+  transition: color 0.15s;
+}
+.table-copy:hover { color: var(--text-primary); }
+.table-copy.copied { color: var(--accent); }
 
 pre:has(code.language-mermaid) {
   background: transparent !important;
@@ -693,7 +710,7 @@ function render() {
       block.innerHTML = lines.map((line, i) => {
         const last = i === lines.length - 1;
         return last && line === '' ? '' : '<span class="hljs-line">' + (line || ' ') + '</span>';
-      }).join('\n');
+      }).join('');
     }
   });
 
@@ -772,17 +789,10 @@ function render() {
       w.appendChild(tbl);
     }
     const wrap = tbl.closest('.table-wrap');
-    if (wrap.querySelector('.code-header')) return;
-
-    const header = document.createElement('div');
-    header.className = 'code-header';
-    const label = document.createElement('span');
-    label.className = 'lang';
-    label.textContent = 'TABLE';
-    header.appendChild(label);
+    if (wrap.querySelector('.table-copy')) return;
 
     const copyBtn = document.createElement('button');
-    copyBtn.className = 'copy-btn';
+    copyBtn.className = 'table-copy';
     copyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
     copyBtn.title = 'Copy as markdown';
     copyBtn.addEventListener('click', () => {
@@ -796,8 +806,7 @@ function render() {
         }, 1500);
       }).catch(() => {});
     });
-    header.appendChild(copyBtn);
-    wrap.insertBefore(header, wrap.firstChild);
+    wrap.appendChild(copyBtn);
   });
 
   /* Task list items */
