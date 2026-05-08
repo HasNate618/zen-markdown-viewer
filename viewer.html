@@ -943,10 +943,10 @@ function render() {
     /* reattach svg so scripts/defs work */
     const svg = content.querySelector('svg');
     if (svg) {
-      svg.style.maxWidth = '90vw';
-      svg.style.maxHeight = '90vh';
-      svg.style.width = 'auto';
-      svg.style.height = 'auto';
+      svg.style.setProperty('max-width', '90vw', 'important');
+      svg.style.setProperty('max-height', '90vh', 'important');
+      svg.style.setProperty('width', 'auto', 'important');
+      svg.style.setProperty('height', 'auto', 'important');
     }
 
     let panX = 0, panY = 0, zoom = 1;
