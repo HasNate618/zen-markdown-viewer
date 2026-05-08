@@ -840,63 +840,62 @@ function render() {
     });
 
     try {
-      mermaid.run({ nodes: document.querySelectorAll('.mermaid') });
-    } catch(e) { /* fallback */ }
+      mermaid.run({ nodes: document.querySelectorAll('.mermaid') }).then(() => {
+        /* Remove mermaid's explicit sizing */
+        document.querySelectorAll('.mermaid svg').forEach(svg => {
+          svg.removeAttribute('width');
+          svg.removeAttribute('height');
+          svg.style.removeProperty('max-width');
+          svg.style.width = '100%';
+          svg.style.maxWidth = '100%';
+          svg.style.height = 'auto';
+        });
 
-    /* Size SVG to fit container width, let height follow aspect ratio */
-    document.querySelectorAll('.mermaid svg').forEach(svg => {
-      svg.style.maxWidth = '100%';
-      svg.style.height = 'auto';
-    });
+        /* Wrap in container + header bar with controls */
+        document.querySelectorAll('#content .mermaid').forEach(m => {
+          const wrap = m.closest('.mermaid-wrap');
+          if (wrap) return;
+
+          const container = document.createElement('div');
+          container.className = 'mermaid-wrap';
+          m.parentElement.insertBefore(container, m);
+
+          const inner = document.createElement('div');
+          inner.className = 'mermaid-inner';
+          container.appendChild(inner);
+          inner.appendChild(m);
+
+          const source = m.textContent;
+
+          const header = document.createElement('div');
+          header.className = 'code-header';
+
+          const lang = document.createElement('span');
+          lang.className = 'lang';
+          lang.textContent = 'MERMAID';
+          header.appendChild(lang);
+
+          const btnGroup = document.createElement('div');
+          btnGroup.style.cssText = 'display:flex;gap:0.5rem;align-items:center';
+
+          const copyBtn = mkIconBtn('copy', source, 'Copy source');
+          btnGroup.appendChild(copyBtn);
+
+          const svgEl = m.querySelector('svg');
+          const dlBtn = mkIconBtn('download', svgEl, 'Download SVG');
+          btnGroup.appendChild(dlBtn);
+
+          const maxBtn = mkIconBtn('maximize', { el: svgEl, source }, 'Maximize');
+          btnGroup.appendChild(maxBtn);
+
+          header.appendChild(btnGroup);
+          container.insertBefore(header, container.firstChild);
+        });
+      });
+    } catch(e) { /* fallback */ }
   }
 
-  /* Mermaid header bar + controls */
-  document.querySelectorAll('#content .mermaid').forEach(m => {
-    const wrap = m.closest('.mermaid-wrap');
-    if (wrap) return; /* already processed */
-
-    const container = document.createElement('div');
-    container.className = 'mermaid-wrap';
-    m.parentElement.insertBefore(container, m);
-
-    const inner = document.createElement('div');
-    inner.className = 'mermaid-inner';
-    container.appendChild(inner);
-
-    inner.appendChild(m);
-
-    const source = m.textContent;
-
-    /* header */
-    const header = document.createElement('div');
-    header.className = 'code-header';
-
-    const lang = document.createElement('span');
-    lang.className = 'lang';
-    lang.textContent = 'MERMAID';
-    header.appendChild(lang);
-
-    const btnGroup = document.createElement('div');
-    btnGroup.style.cssText = 'display:flex;gap:0.5rem;align-items:center';
-
-    /* copy */
-    const copyBtn = mkIconBtn('copy', source, 'Copy source');
-    btnGroup.appendChild(copyBtn);
-
-    /* download SVG */
-    const svgEl = m.querySelector('svg');
-    const dlBtn = mkIconBtn('download', svgEl, 'Download SVG');
-    btnGroup.appendChild(dlBtn);
-
-    /* maximize */
-    const maxBtn = mkIconBtn('maximize', { el: svgEl, source }, 'Maximize');
-    btnGroup.appendChild(maxBtn);
-
-    header.appendChild(btnGroup);
-    container.insertBefore(header, container.firstChild);
-  });
-
-  function mkIconBtn(type, data, title) {
+  const mkIconBtn = (type, data, title) => {
     const b = document.createElement('button');
     b.className = 'copy-btn';
     b.title = title;
@@ -934,9 +933,9 @@ function render() {
       }
     });
     return b;
-  }
+  };
 
-  function openMaximize(data) {
+  const openMaximize = (data) => {
     const svgStr = data.el ? data.el.outerHTML : data.source;
     const ov = document.getElementById('mermaid-overlay');
     const content = ov.querySelector('.m-scale');
