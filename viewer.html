@@ -164,7 +164,7 @@ pre code {
   padding: 0;
   font-size: 0.85em;
   color: var(--text-primary);
-  line-height: 1.15;
+  line-height: 1.35;
   display: block;
   border: none;
   border-radius: 0;
@@ -176,7 +176,7 @@ pre code .hljs-line {
   display: block;
   padding-left: 3.5em;
   position: relative;
-  line-height: 1.15;
+  line-height: 1.35;
 }
 pre code .hljs-line::before {
   content: counter(line);
@@ -818,6 +818,19 @@ function render() {
   document.querySelectorAll('#content a[href^="http"]').forEach(a => {
     a.target = '_blank';
     a.rel = 'noopener noreferrer';
+  });
+
+  /* Inline code click to copy */
+  document.querySelectorAll('#content code:not(pre code)').forEach(el => {
+    el.style.cursor = 'copy';
+    el.title = 'Click to copy';
+    el.addEventListener('click', () => {
+      const text = el.textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        el.style.outline = '1px solid var(--accent)';
+        setTimeout(() => { el.style.outline = ''; }, 500);
+      }).catch(() => {});
+    });
   });
 
   buildToc();
