@@ -68,7 +68,7 @@ body {
 
 ::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 8px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
 /* ===== Content ===== */
@@ -113,7 +113,7 @@ li > ul, li > ol { margin-bottom: 0; margin-top: 0.15em; }
   -webkit-appearance: none;
   width: 1em; height: 1em;
   border: 1.5px solid var(--border);
-  border-radius: 3px;
+  border-radius: 6px;
   margin: 0 0.4em 0 -1.6em;
   cursor: default;
   flex-shrink: 0;
@@ -143,7 +143,7 @@ code {
   font-family: "SF Mono", "Fira Code", "Cascadia Code", ui-monospace, monospace;
   font-size: 0.875em;
   padding: 0.2em 0.4em;
-  border-radius: 6px;
+  border-radius: 10px;
   background: rgba(6,6,6,0.4);
   color: var(--text-primary);
   border: 1px solid var(--code-border);
@@ -152,7 +152,7 @@ code {
 pre {
   background: rgba(6,6,6,0.4) !important;
   border: 1px solid var(--code-border);
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 0.75rem 1rem;
   margin-bottom: 0.75em;
   overflow-x: auto;
@@ -175,7 +175,6 @@ pre code .hljs-line {
   display: block;
   padding-left: 3.5em;
   position: relative;
-  min-height: 1.4em;
 }
 pre code .hljs-line::before {
   content: counter(line);
@@ -208,23 +207,18 @@ pre code .hljs-line::before {
 }
 .code-header .copy-btn {
   background: none;
-  border: 1px solid var(--border);
+  border: none;
   color: var(--text-muted);
   cursor: pointer;
-  font-size: 0.8rem;
-  padding: 0.2rem 0.6rem;
+  font-size: 1rem;
+  padding: 0;
   border-radius: 4px;
   font-family: inherit;
-  transition: all 0.15s;
+  line-height: 1;
+  transition: color 0.15s;
 }
-.code-header .copy-btn:hover {
-  color: var(--text-primary);
-  border-color: var(--text-muted);
-}
-.code-header .copy-btn.copied {
-  color: var(--accent);
-  border-color: var(--accent);
-}
+.code-header .copy-btn:hover { color: var(--text-primary); }
+.code-header .copy-btn.copied { color: var(--accent); }
 
 pre:has(code.language-mermaid) {
   background: transparent !important;
@@ -234,7 +228,7 @@ pre:has(code.language-mermaid) {
 }
 
 /* ===== Tables ===== */
-.table-wrap { overflow-x: auto; margin-bottom: 0.75em; border-radius: 8px; border: 1px solid var(--border); }
+.table-wrap { overflow-x: auto; margin-bottom: 0.75em; border-radius: 12px; border: 1px solid var(--border); }
 
 table {
   border-collapse: collapse;
@@ -268,7 +262,7 @@ blockquote {
   padding: 0.5em 0.75em;
   border-left: 3px solid var(--blockquote-border);
   background: rgba(6,6,6,0.4);
-  border-radius: 0 8px 8px 0;
+  border-radius: 0 12px 12px 0;
   border-top: 1px solid var(--border);
   border-right: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
@@ -285,7 +279,7 @@ hr {
   margin: 1.25em 0;
 }
 
-img { max-width: 100%; height: auto; border-radius: 8px; margin-bottom: 0.75em; }
+img { max-width: 100%; height: auto; border-radius: 12px; margin-bottom: 0.75em; }
 
 /* ===== KaTeX ===== */
 .katex-block { margin: 0.5em 0; overflow-x: auto; text-align: center; }
@@ -346,37 +340,103 @@ img { max-width: 100%; height: auto; border-radius: 8px; margin-bottom: 0.75em; 
 .toc-item.l-6 { padding-left: 5rem; font-size: 0.8rem; }
 
 /* ===== Help Overlay ===== */
+@keyframes popIn { 0% { opacity: 0; transform: scale(0.92); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes popOut { 0% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(0.92); } }
+@keyframes fadeIn { 0% { opacity: 0; } 100% { opacity: 1; } }
+@keyframes fadeOut { 0% { opacity: 1; } 100% { opacity: 0; } }
+
 #help-overlay {
   position: fixed; inset: 0;
-  background: rgba(0,0,0,0.5);
-  z-index: 200;
   display: none;
   align-items: center;
   justify-content: center;
+  background: rgba(18,18,20,0.45);
+  z-index: 200;
+  padding: clamp(8px, 3vw, 40px);
+  box-sizing: border-box;
+  animation: fadeIn 0.25s ease-out;
 }
 #help-overlay.open { display: flex; }
+#help-overlay.closing { animation: fadeOut 0.15s ease-out forwards; }
 
 #help-content {
-  background: var(--bg-primary);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 2rem;
-  max-width: 480px;
-  width: 90%;
-  max-height: 80vh;
-  overflow-y: auto;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  position: relative;
+  background: rgba(30,30,35,0.85);
+  padding: 20px 24px;
+  border-radius: 16px;
+  width: min(700px, 100%);
+  max-height: 88vh;
+  overflow: auto;
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 10px 30px rgba(2,6,23,0.55);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  animation: popIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-#help-content h2 { margin-top: 0; border: none; padding: 0; font-size: 1.25em; margin-bottom: 1rem; }
+#help-overlay.closing #help-content { animation: popOut 0.15s cubic-bezier(0.4, 0, 1, 1) forwards; }
 
-.help-tbl { width: 100%; font-size: 0.875rem; }
-.help-tbl td { border: none; padding: 0.4rem 0; }
-.help-tbl td:first-child {
-  font-family: "SF Mono", ui-monospace, monospace;
-  font-weight: 600;
-  color: var(--accent);
-  width: 40%;
+#help-content h2 { margin-top: 0; margin-bottom: 12px; font-size: 18px; font-weight: 600; color: #f1f5f9; }
+
+.help-close {
+  position: absolute;
+  top: 8px; right: 8px;
+  background: transparent;
+  color: #e6eef0;
+  border: 0;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 8px;
 }
+.help-close:hover { background: rgba(255,255,255,0.05); }
+
+.help-grid {
+  display: grid;
+  grid-template-columns: auto 1fr auto 1fr;
+  gap: 0 20px;
+  width: 100%;
+}
+@media (max-width: 640px) {
+  .help-grid { grid-template-columns: auto 1fr; }
+}
+
+.help-key {
+  display: flex; flex-wrap: wrap; gap: 4px; align-items: center;
+  padding: 7px 8px 7px 0;
+  border-top: 1px solid rgba(255,255,255,0.03);
+}
+.help-key:nth-child(4n+1), .help-key:nth-child(4n+2) { border-top: none; }
+.help-grid > .help-key:nth-child(-n+4) { border-top: none; }
+
+.help-desc {
+  color: #e6eef0; font-size: 14px; line-height: 1.45; opacity: 0.95;
+  padding: 7px 8px 7px 0;
+  border-top: 1px solid rgba(255,255,255,0.03);
+  display: flex; align-items: center;
+}
+.help-grid > .help-desc:nth-child(-n+4) { border-top: none; }
+
+.help-cap {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', monospace;
+  font-weight: 700; color: #fff; font-size: 13px;
+  background: rgba(255,255,255,0.09);
+  border: 1px solid rgba(255,255,255,0.14);
+  padding: 3px 8px; border-radius: 6px;
+  display: inline-block; white-space: nowrap;
+}
+
+#help-footer { text-align: right; margin-top: 8px; }
+#help-footer button {
+  background: transparent;
+  color: #e6eef0;
+  border: 1px solid rgba(255,255,255,0.14);
+  font-size: 13px;
+  padding: 4px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+}
+#help-footer button:hover { background: rgba(255,255,255,0.05); }
 
 /* ===== Status ===== */
 #status {
@@ -413,23 +473,24 @@ img { max-width: 100%; height: auto; border-radius: 8px; margin-bottom: 0.75em; 
 
 <div id="help-overlay">
   <div id="help-content">
-    <h2>Keyboard Shortcuts</h2>
-    <table class="help-tbl">
-      <tr><td>g</td><td>Scroll to top</td></tr>
-      <tr><td>G</td><td>Scroll to bottom</td></tr>
-      <tr><td>j</td><td>Scroll down</td></tr>
-      <tr><td>k</td><td>Scroll up</td></tr>
-      <tr><td>Tab</td><td>Next heading</td></tr>
-      <tr><td>Shift+Tab</td><td>Previous heading</td></tr>
-      <tr><td>Space</td><td>Toggle table of contents</td></tr>
-      <tr><td>b</td><td>Toggle background transparency</td></tr>
-      <tr><td>t</td><td>Toggle text color (black/white)</td></tr>
-      <tr><td>r</td><td>Force re-render</td></tr>
-      <tr><td>w</td><td>Toggle wide / fixed width</td></tr>
-      <tr><td>q</td><td>Close tab</td></tr>
-      <tr><td>?</td><td>Toggle this help</td></tr>
-      <tr><td>Esc</td><td>Close overlays</td></tr>
-    </table>
+    <button id="help-close-btn" class="help-close" aria-label="Close">&times;</button>
+    <h2>Keybindings</h2>
+    <div class="help-grid">
+      <div class="help-key"><span class="help-cap">g</span></div><div class="help-desc">Scroll to top</div>
+      <div class="help-key"><span class="help-cap">G</span></div><div class="help-desc">Scroll to bottom</div>
+      <div class="help-key"><span class="help-cap">j</span></div><div class="help-desc">Scroll down</div>
+      <div class="help-key"><span class="help-cap">k</span></div><div class="help-desc">Scroll up</div>
+      <div class="help-key"><span class="help-cap">Tab</span></div><div class="help-desc">Next heading</div>
+      <div class="help-key"><span class="help-cap">Shift</span>+<span class="help-cap">Tab</span></div><div class="help-desc">Previous heading</div>
+      <div class="help-key"><span class="help-cap">Space</span></div><div class="help-desc">Toggle table of contents</div>
+      <div class="help-key"><span class="help-cap">b</span></div><div class="help-desc">Toggle background transparency</div>
+      <div class="help-key"><span class="help-cap">t</span></div><div class="help-desc">Toggle text color</div>
+      <div class="help-key"><span class="help-cap">w</span></div><div class="help-desc">Toggle wide / fixed width</div>
+      <div class="help-key"><span class="help-cap">r</span></div><div class="help-desc">Force re-render</div>
+      <div class="help-key"><span class="help-cap">q</span></div><div class="help-desc">Close tab</div>
+      <div class="help-key"><span class="help-cap">?</span> / <span class="help-cap">Esc</span></div><div class="help-desc">Toggle this help</div>
+    </div>
+    <div id="help-footer"><button id="help-footer-btn">Close</button></div>
   </div>
 </div>
 
@@ -623,14 +684,15 @@ function render() {
 
     const copyBtn = document.createElement('button');
     copyBtn.className = 'copy-btn';
-    copyBtn.textContent = 'Copy';
+    copyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+    copyBtn.title = 'Copy code';
     copyBtn.addEventListener('click', () => {
       const text = code.textContent;
       navigator.clipboard.writeText(text).then(() => {
-        copyBtn.textContent = 'Copied!';
+        copyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
         copyBtn.classList.add('copied');
         setTimeout(() => {
-          copyBtn.textContent = 'Copy';
+          copyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
           copyBtn.classList.remove('copied');
         }, 1500);
       }).catch(() => {});
@@ -755,10 +817,24 @@ function toggleToc() {
 function closeToc() { state.tocOpen = false; document.getElementById('toc-overlay').classList.remove('open'); }
 
 function toggleHelp() {
-  state.helpOpen = !state.helpOpen;
-  document.getElementById('help-overlay').classList.toggle('open', state.helpOpen);
+  const ov = document.getElementById('help-overlay');
+  if (state.helpOpen) { closeHelp(); return; }
+  state.helpOpen = true;
+  ov.classList.remove('closing');
+  ov.classList.add('open');
 }
-function closeHelp() { state.helpOpen = false; document.getElementById('help-overlay').classList.remove('open'); }
+function closeHelp() {
+  const ov = document.getElementById('help-overlay');
+  if (!state.helpOpen) return;
+  const inner = document.getElementById('help-content');
+  ov.classList.add('closing');
+  if (inner) inner.classList.add('closing');
+  inner.addEventListener('animationend', () => {
+    inner.classList.remove('closing');
+    ov.classList.remove('closing', 'open');
+    state.helpOpen = false;
+  }, { once: true });
+}
 
 function closeAll() { closeToc(); closeHelp(); }
 
@@ -782,7 +858,12 @@ function showStatus(msg) {
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
-  if (e.key === 'Escape') { closeAll(); return; }
+  if (e.key === 'Escape') {
+    if (state.tocOpen) { closeToc(); e.preventDefault(); return; }
+    toggleHelp();
+    e.preventDefault();
+    return;
+  }
 
   if (e.shiftKey && e.key === 'Tab') { e.preventDefault(); prevHeading(); return; }
 
@@ -845,6 +926,10 @@ function init() {
   window.addEventListener('scroll', () => {
     if (state.tocOpen) updateTocActive();
   });
+
+  /* Help overlay close buttons */
+  document.getElementById('help-close-btn').addEventListener('click', closeHelp);
+  document.getElementById('help-footer-btn').addEventListener('click', closeHelp);
 }
 
 if (document.readyState === 'loading') {
