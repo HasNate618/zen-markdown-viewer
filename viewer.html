@@ -164,7 +164,7 @@ pre code {
   padding: 0;
   font-size: 0.85em;
   color: var(--text-primary);
-  line-height: 1.25;
+  line-height: 1;
   border: none;
   border-radius: 0;
   counter-reset: line;
@@ -175,7 +175,7 @@ pre code .hljs-line {
   display: block;
   padding-left: 3.5em;
   position: relative;
-  line-height: 1.25;
+  line-height: 1;
 }
 pre code .hljs-line::before {
   content: counter(line);
@@ -188,6 +188,7 @@ pre code .hljs-line::before {
   color: var(--text-muted);
   padding-right: 0.75em;
   box-sizing: border-box;
+  line-height: inherit;
 }
 
 /* Code header (language + copy button) */
