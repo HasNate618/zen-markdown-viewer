@@ -153,7 +153,7 @@ pre {
   background: rgba(6,6,6,0.4) !important;
   border: 1px solid var(--code-border);
   border-radius: 12px;
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 0.75rem;
   margin-bottom: 0.75em;
   overflow-x: auto;
   position: relative;
@@ -164,7 +164,7 @@ pre code {
   padding: 0;
   font-size: 0.85em;
   color: var(--text-primary);
-  line-height: 1.4;
+  line-height: 1.25;
   border: none;
   border-radius: 0;
   counter-reset: line;
@@ -175,6 +175,7 @@ pre code .hljs-line {
   display: block;
   padding-left: 3.5em;
   position: relative;
+  line-height: 1.25;
 }
 pre code .hljs-line::before {
   content: counter(line);
@@ -194,10 +195,10 @@ pre code .hljs-line::before {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 0 0.5rem;
-  margin-bottom: 0.5rem;
+  padding: 0 0 0.35rem;
+  margin-bottom: 0.35rem;
   border-bottom: 1px solid var(--border);
-  font-size: 0.8rem;
+  font-size: 0.75rem;
 }
 .code-header .lang {
   color: var(--text-muted);
@@ -220,6 +221,9 @@ pre code .hljs-line::before {
 .code-header .copy-btn:hover { color: var(--text-primary); }
 .code-header .copy-btn.copied { color: var(--accent); }
 
+/* Table header (reuse same style as code-header) */
+.table-wrap { position: relative; }
+
 pre:has(code.language-mermaid) {
   background: transparent !important;
   padding: 0;
@@ -233,7 +237,7 @@ pre:has(code.language-mermaid) {
 table {
   border-collapse: collapse;
   width: 100%;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
 }
 
 th, td {
@@ -628,6 +632,33 @@ function escapeHtml(s) {
   return d.innerHTML;
 }
 
+function tableToMarkdown(table) {
+  const rows = [];
+  const trs = table.querySelectorAll('tr');
+  trs.forEach(tr => {
+    const cells = [];
+    tr.querySelectorAll('th, td').forEach(cell => {
+      let text = cell.textContent.trim().replace(/\s+/g, ' ');
+      text = text.replace(/\|/g, '\\|');
+      cells.push(text);
+    });
+    rows.push(cells);
+  });
+  if (!rows.length) return '';
+  const colCount = Math.max(...rows.map(r => r.length));
+  const cols = Array.from({ length: colCount }, (_, i) => i);
+  const lines = [];
+  // header
+  lines.push('| ' + cols.map(i => rows[0][i] || '').join(' | ') + ' |');
+  // separator
+  lines.push('|' + cols.map(() => ' --- ').join('|') + '|');
+  // body
+  for (let r = 1; r < rows.length; r++) {
+    lines.push('| ' + cols.map(i => rows[r][i] || '').join(' | ') + ' |');
+  }
+  return lines.join('\n');
+}
+
 /* ===== Render ===== */
 function render() {
   if (!state.lastContent) return;
@@ -731,7 +762,7 @@ function render() {
     } catch(e) { /* fallback */ }
   }
 
-  /* Wrap tables for horizontal scroll */
+  /* Wrap tables for horizontal scroll, add copy button */
   document.querySelectorAll('#content table').forEach(tbl => {
     if (!tbl.parentElement.classList.contains('table-wrap')) {
       const w = document.createElement('div');
@@ -739,6 +770,33 @@ function render() {
       tbl.parentElement.insertBefore(w, tbl);
       w.appendChild(tbl);
     }
+    const wrap = tbl.closest('.table-wrap');
+    if (wrap.querySelector('.code-header')) return;
+
+    const header = document.createElement('div');
+    header.className = 'code-header';
+    const label = document.createElement('span');
+    label.className = 'lang';
+    label.textContent = 'TABLE';
+    header.appendChild(label);
+
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'copy-btn';
+    copyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+    copyBtn.title = 'Copy as markdown';
+    copyBtn.addEventListener('click', () => {
+      const md = tableToMarkdown(tbl);
+      navigator.clipboard.writeText(md).then(() => {
+        copyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+        copyBtn.classList.add('copied');
+        setTimeout(() => {
+          copyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+          copyBtn.classList.remove('copied');
+        }, 1500);
+      }).catch(() => {});
+    });
+    header.appendChild(copyBtn);
+    wrap.insertBefore(header, wrap.firstChild);
   });
 
   /* Task list items */
