@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Zen Markdown Viewer</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<style>
+/* ===== CSS Variables ===== */
+:root {
+  --bg-primary: #0d1117;
+  --bg-secondary: #161b22;
+  --text-primary: #e6edf3;
+  --text-secondary: #8b949e;
+  --text-muted: #6e7781;
+  --border: #30363d;
+  --accent: #58a6ff;
+  --blockquote-border: #388bfd;
+  --overlay-bg: rgba(6,6,6,0.85);
+  --overlay-border: #30363d;
+  --heading-color: #e6edf3;
+  --hr-color: #30363d;
+  --toc-hover: rgba(6,6,6,0.25);
+  --toc-active: rgba(6,6,6,0.5);
+  --scrollbar-thumb: #484f58;
+  --code-border: #30363d;
+}
+
+:root.light {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f6f8fa;
+  --text-primary: #24292f;
+  --text-secondary: #57606a;
+  --text-muted: #8b949e;
+  --border: #d0d7de;
+  --accent: #0969da;
+  --blockquote-border: #0969da;
+  --overlay-bg: rgba(255,255,255,0.95);
+  --overlay-border: #d0d7de;
+  --heading-color: #1f2328;
+  --hr-color: #d0d7de;
+  --toc-hover: #f6f8fa;
+  --toc-active: #ddf4ff;
+  --scrollbar-thumb: #c1c7cd;
+  --code-border: #d0d7de;
+}
+
+body.text-white { --text-primary: #ffffff; --heading-color: #ffffff; }
+body.text-black { --text-primary: #000000; --heading-color: #000000; }
+
+body.bg-transparent { background: transparent !important; }
+body:not(.bg-transparent) { background: var(--bg-primary); }
+
+/* ===== Reset & Base ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { overflow-y: scroll; overscroll-behavior-y: none; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--text-primary);
+  min-height: 100vh;
+  transition: color 0.15s, background 0.15s;
+}
+
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ===== Content ===== */
+#content {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 1rem 2rem 3rem;
+}
+body.wide #content { max-width: 100%; }
+
+/* ===== Typography ===== */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--heading-color);
+  font-weight: 600;
+  line-height: 1.3;
+  margin-top: 1.25em;
+  margin-bottom: 0.4em;
+}
+h1 { font-size: 1.75em; font-weight: 700; border-bottom: 1px solid var(--border); padding-bottom: 0.3em; }
+h2 { font-size: 1.4em; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+h3 { font-size: 1.15em; }
+h4 { font-size: 1em; font-weight: 600; }
+h5 { font-size: 0.9em; font-weight: 600; }
+h6 { font-size: 0.85em; font-weight: 600; color: var(--text-muted); }
+h1:first-child { margin-top: 0; }
+p { margin-bottom: 0.75em; line-height: 1.7; margin-top: 0; }
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+strong { font-weight: 600; }
+em { font-style: italic; }
+
+ul, ol { margin-bottom: 0.75em; padding-left: 1.5em; }
+li { margin-bottom: 0.15em; line-height: 1.5; }
+li > ul, li > ol { margin-bottom: 0; margin-top: 0.15em; }
+
+.task-list-item { list-style: none; }
+
+.task-list-item input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 1em; height: 1em;
+  border: 1.5px solid var(--border);
+  border-radius: 3px;
+  margin: 0 0.4em 0 -1.6em;
+  cursor: default;
+  flex-shrink: 0;
+  position: relative;
+  top: 2px;
+  background: transparent;
+  vertical-align: middle;
+}
+
+.task-list-item input[type="checkbox"]:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.task-list-item input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  left: 3px; top: 0;
+  width: 5px; height: 9px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* ===== Code ===== */
+code {
+  font-family: "SF Mono", "Fira Code", "Cascadia Code", ui-monospace, monospace;
+  font-size: 0.875em;
+  padding: 0.2em 0.4em;
+  border-radius: 6px;
+  background: rgba(6,6,6,0.4);
+  color: var(--text-primary);
+  border: 1px solid var(--code-border);
+}
+
+pre {
+  background: rgba(6,6,6,0.4) !important;
+  border: 1px solid var(--code-border);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75em;
+  overflow-x: auto;
+  position: relative;
+}
+
+pre code {
+  background: none !important;
+  padding: 0;
+  font-size: 0.85em;
+  color: var(--text-primary);
+  line-height: 1.4;
+  border: none;
+  border-radius: 0;
+  counter-reset: line;
+}
+pre code.hljs { padding: 0; background: none !important; }
+
+pre code .hljs-line {
+  display: block;
+  padding-left: 3.5em;
+  position: relative;
+  min-height: 1.4em;
+}
+pre code .hljs-line::before {
+  content: counter(line);
+  counter-increment: line;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 2.5em;
+  text-align: right;
+  color: var(--text-muted);
+  padding-right: 0.75em;
+  box-sizing: border-box;
+}
+
+/* Code header (language + copy button) */
+.code-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 0 0.5rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.8rem;
+}
+.code-header .lang {
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.code-header .copy-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.code-header .copy-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
+.code-header .copy-btn.copied {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+pre:has(code.language-mermaid) {
+  background: transparent !important;
+  padding: 0;
+  border: none;
+  text-align: center;
+}
+
+/* ===== Tables ===== */
+.table-wrap { overflow-x: auto; margin-bottom: 0.75em; border-radius: 8px; border: 1px solid var(--border); }
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.875rem;
+}
+
+th, td {
+  border: none;
+  border-bottom: 1px solid var(--border);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+th {
+  background: rgba(6,6,6,0.4);
+  font-weight: 600;
+  color: var(--heading-color);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+td { background: rgba(6,6,6,0.4); }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(6,6,6,0.5); }
+
+/* ===== Blockquotes ===== */
+blockquote {
+  margin-bottom: 0.75em;
+  padding: 0.5em 0.75em;
+  border-left: 3px solid var(--blockquote-border);
+  background: rgba(6,6,6,0.4);
+  border-radius: 0 8px 8px 0;
+  border-top: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+blockquote > :last-child { margin-bottom: 0; }
+blockquote p { margin-bottom: 0.3em; }
+blockquote p:last-child { margin-bottom: 0; }
+
+/* ===== Misc ===== */
+hr {
+  border: none;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--hr-color) 20%, var(--hr-color) 80%, transparent);
+  margin: 1.25em 0;
+}
+
+img { max-width: 100%; height: auto; border-radius: 8px; margin-bottom: 0.75em; }
+
+/* ===== KaTeX ===== */
+.katex-block { margin: 0.5em 0; overflow-x: auto; text-align: center; }
+
+/* ===== Mermaid ===== */
+.mermaid { background: transparent !important; }
+
+/* ===== TOC Overlay ===== */
+#toc-overlay {
+  position: fixed;
+  top: 0; right: 0;
+  width: 320px; height: 100%;
+  background: var(--overlay-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-left: 1px solid var(--overlay-border);
+  z-index: 100;
+  transform: translateX(100%);
+  transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+#toc-overlay.open { transform: translateX(0); }
+
+#toc-header {
+  padding: 1rem 1.25rem;
+  font-weight: 600;
+  font-size: 0.85em;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+#toc-list { padding: 0.5rem 0; flex: 1; }
+
+.toc-item {
+  display: block;
+  padding: 0.35rem 1.25rem;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  text-decoration: none;
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  transition: all 0.1s;
+  line-height: 1.4;
+}
+.toc-item:hover { background: var(--toc-hover); color: var(--text-primary); }
+.toc-item.active { color: var(--accent); border-left-color: var(--accent); background: var(--toc-active); }
+
+.toc-item.l-1 { padding-left: 1.25rem; font-weight: 600; }
+.toc-item.l-2 { padding-left: 2rem; }
+.toc-item.l-3 { padding-left: 2.75rem; font-size: 0.825rem; }
+.toc-item.l-4 { padding-left: 3.5rem; font-size: 0.8rem; }
+.toc-item.l-5 { padding-left: 4.25rem; font-size: 0.8rem; }
+.toc-item.l-6 { padding-left: 5rem; font-size: 0.8rem; }
+
+/* ===== Help Overlay ===== */
+#help-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 200;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+#help-overlay.open { display: flex; }
+
+#help-content {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 2rem;
+  max-width: 480px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+#help-content h2 { margin-top: 0; border: none; padding: 0; font-size: 1.25em; margin-bottom: 1rem; }
+
+.help-tbl { width: 100%; font-size: 0.875rem; }
+.help-tbl td { border: none; padding: 0.4rem 0; }
+.help-tbl td:first-child {
+  font-family: "SF Mono", ui-monospace, monospace;
+  font-weight: 600;
+  color: var(--accent);
+  width: 40%;
+}
+
+/* ===== Status ===== */
+#status {
+  position: fixed;
+  bottom: 1rem; right: 1rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  background: var(--overlay-bg);
+  border: 1px solid var(--border);
+  z-index: 50;
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+#status.show { opacity: 1; }
+
+/* ===== Responsive ===== */
+@media (max-width: 640px) {
+  #content { padding: 1rem; }
+  #toc-overlay { width: 100%; }
+  #help-content { padding: 1.5rem; }
+}
+</style>
+</head>
+<body>
+<div id="content"><p style="text-align:center;margin-top:4rem;color:var(--text-muted)">Loading…</p></div>
+
+<div id="toc-overlay">
+  <div id="toc-header">Table of Contents</div>
+  <div id="toc-list"></div>
+</div>
+
+<div id="help-overlay">
+  <div id="help-content">
+    <h2>Keyboard Shortcuts</h2>
+    <table class="help-tbl">
+      <tr><td>g</td><td>Scroll to top</td></tr>
+      <tr><td>G</td><td>Scroll to bottom</td></tr>
+      <tr><td>j</td><td>Scroll down</td></tr>
+      <tr><td>k</td><td>Scroll up</td></tr>
+      <tr><td>Tab</td><td>Next heading</td></tr>
+      <tr><td>Shift+Tab</td><td>Previous heading</td></tr>
+      <tr><td>Space</td><td>Toggle table of contents</td></tr>
+      <tr><td>b</td><td>Toggle background transparency</td></tr>
+      <tr><td>t</td><td>Toggle text color (black/white)</td></tr>
+      <tr><td>r</td><td>Force re-render</td></tr>
+      <tr><td>w</td><td>Toggle wide / fixed width</td></tr>
+      <tr><td>q</td><td>Close tab</td></tr>
+      <tr><td>?</td><td>Toggle this help</td></tr>
+      <tr><td>Esc</td><td>Close overlays</td></tr>
+    </table>
+  </div>
+</div>
+
+<div id="status"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.1/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script>
+;(function() {
+'use strict';
+
+/* ===== Config ===== */
+const CONFIG = {
+  pollInterval: 3000,
+  scrollStep: 50,
+};
+
+/* ===== State ===== */
+const state = {
+  file: null,
+  lastContent: '',
+  headings: [],
+  currentHeading: -1,
+  tocOpen: false,
+  helpOpen: false,
+  textColor: 'auto',
+  bgTransparent: true,
+  wideMode: false,
+};
+
+/* ===== URL Params ===== */
+function getParams() {
+  const p = new URLSearchParams(location.search);
+  return {
+    file: p.get('file') || '',
+    textColor: p.get('t') || 'auto',
+    bgTransparent: p.get('b') !== 'solid',
+  };
+}
+
+/* ===== Theme ===== */
+function applyTheme() {
+  const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  document.documentElement.classList.remove('dark', 'light');
+  document.documentElement.classList.add(dark ? 'dark' : 'light');
+}
+
+function applyTextColor(mode) {
+  state.textColor = mode;
+  document.body.classList.remove('text-white', 'text-black');
+  if (mode === 'white') document.body.classList.add('text-white');
+  else if (mode === 'black') document.body.classList.add('text-black');
+}
+
+function toggleBg() {
+  state.bgTransparent = !state.bgTransparent;
+  document.body.classList.toggle('bg-transparent');
+  showStatus(state.bgTransparent ? 'Background: transparent' : 'Background: solid');
+}
+
+function toggleTextColor() {
+  const next = state.textColor === 'white' ? 'black' : 'white';
+  applyTextColor(next);
+  showStatus('Text: ' + next);
+}
+
+/* ===== Markdown Processing ===== */
+
+/* Step 1: extract fenced code and inline code */
+function extractCodeBlocks(md) {
+  const blocks = [];
+  const processed = md.replace(/(```[\s\S]*?```)/g, m => {
+    blocks.push(m);
+    return '\x00CB' + (blocks.length - 1) + '\x00';
+  });
+  return { processed, blocks };
+}
+
+function restoreCodeBlocks(text, blocks) {
+  return text.replace(/\x00CB(\d+)\x00/g, (_, i) => blocks[parseInt(i)]);
+}
+
+/* Step 2: process display math $$...$$ in non-code text */
+function processDisplayMath(text) {
+  return text.replace(/^\$\$([\s\S]*?)\$\$/gm, (match, math) => {
+    const encoded = encodeURIComponent(math.trim());
+    return '<div class="katex-block" data-math="' + encoded + '"></div>';
+  });
+}
+
+/* Step 3: process inline math $...$ in non-code text */
+function processInlineMath(text) {
+  return text.replace(/(?<!\$)\$((?!\$)[^$]*?[^$\s]|[^$])\$/g, (match, math) => {
+    const encoded = encodeURIComponent(math);
+    return '<span class="katex-inline" data-math="' + encoded + '"></span>';
+  });
+}
+
+function preprocessMath(md) {
+  const { processed, blocks } = extractCodeBlocks(md);
+  let result = processDisplayMath(processed);
+  result = processInlineMath(result);
+  result = restoreCodeBlocks(result, blocks);
+  return result;
+}
+
+function renderKatex() {
+  if (typeof katex === 'undefined') return;
+
+  document.querySelectorAll('.katex-block').forEach(el => {
+    const math = decodeURIComponent(el.dataset.math);
+    try {
+      el.innerHTML = katex.renderToString(math, { displayMode: true, throwOnError: false });
+    } catch(e) {
+      el.outerHTML = '<pre style="text-align:center;color:var(--accent)">' +
+        this.escapeHtml(math) + '</pre>';
+    }
+  });
+
+  document.querySelectorAll('.katex-inline').forEach(el => {
+    const math = decodeURIComponent(el.dataset.math);
+    try {
+      el.outerHTML = katex.renderToString(math, { displayMode: false, throwOnError: false });
+    } catch(e) {
+      el.outerHTML = '$' + this.escapeHtml(math) + '$';
+    }
+  });
+}
+
+function escapeHtml(s) {
+  const d = document.createElement('div');
+  d.appendChild(document.createTextNode(s));
+  return d.innerHTML;
+}
+
+/* ===== Render ===== */
+function render() {
+  if (!state.lastContent) return;
+
+  const processed = preprocessMath(state.lastContent);
+
+  let html;
+  if (typeof marked !== 'undefined') {
+    html = marked.parse(processed);
+  } else {
+    html = '<pre>' + escapeHtml(state.lastContent) + '</pre>';
+  }
+
+  document.getElementById('content').innerHTML = html;
+
+  /* KaTeX */
+  renderKatex();
+
+  /* Syntax highlighting */
+  if (typeof hljs !== 'undefined') {
+    document.querySelectorAll('#content pre code:not(.language-mermaid)').forEach(block => {
+      hljs.highlightElement(block);
+    });
+  }
+
+  /* Line numbers for code blocks */
+  document.querySelectorAll('#content pre code:not(.language-mermaid)').forEach(block => {
+    const html = block.innerHTML;
+    const lines = html.split('\n');
+    if (lines.length > 1) {
+      block.innerHTML = lines.map((line, i) => {
+        const last = i === lines.length - 1;
+        return last && line === '' ? '' : '<span class="hljs-line">' + (line || ' ') + '</span>';
+      }).join('\n');
+    }
+  });
+
+  /* Language label + copy button for code blocks */
+  document.querySelectorAll('#content pre:not(:has(code.language-mermaid))').forEach(pre => {
+    const code = pre.querySelector('code');
+    if (!code) return;
+
+    const classList = Array.from(code.classList);
+    const langClass = classList.find(c => c.startsWith('language-'));
+    const lang = langClass ? langClass.replace('language-', '') : 'code';
+
+    const header = document.createElement('div');
+    header.className = 'code-header';
+
+    const langSpan = document.createElement('span');
+    langSpan.className = 'lang';
+    langSpan.textContent = lang;
+    header.appendChild(langSpan);
+
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'copy-btn';
+    copyBtn.textContent = 'Copy';
+    copyBtn.addEventListener('click', () => {
+      const text = code.textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        copyBtn.textContent = 'Copied!';
+        copyBtn.classList.add('copied');
+        setTimeout(() => {
+          copyBtn.textContent = 'Copy';
+          copyBtn.classList.remove('copied');
+        }, 1500);
+      }).catch(() => {});
+    });
+    header.appendChild(copyBtn);
+
+    pre.insertBefore(header, pre.firstChild);
+  });
+
+  /* Mermaid */
+  const mermaidBlocks = document.querySelectorAll('#content code.language-mermaid');
+  if (mermaidBlocks.length > 0 && typeof mermaid !== 'undefined') {
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'dark',
+      themeVariables: {
+        background: '#0d1117',
+        primaryColor: '#58a6ff',
+        primaryTextColor: '#c9d1d9',
+        primaryBorderColor: '#30363d',
+        lineColor: '#8b949e',
+        secondaryColor: '#161b22',
+        tertiaryColor: '#0d1117',
+      },
+    });
+
+    mermaidBlocks.forEach(el => {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'mermaid';
+      wrapper.textContent = el.textContent;
+      el.parentElement.replaceWith(wrapper);
+    });
+
+    try {
+      mermaid.run({ nodes: document.querySelectorAll('.mermaid') });
+    } catch(e) { /* fallback */ }
+  }
+
+  /* Wrap tables for horizontal scroll */
+  document.querySelectorAll('#content table').forEach(tbl => {
+    if (!tbl.parentElement.classList.contains('table-wrap')) {
+      const w = document.createElement('div');
+      w.className = 'table-wrap';
+      tbl.parentElement.insertBefore(w, tbl);
+      w.appendChild(tbl);
+    }
+  });
+
+  /* Task list items */
+  document.querySelectorAll('#content li:has(input[type="checkbox"])').forEach(li => {
+    li.classList.add('task-list-item');
+  });
+
+  /* External links */
+  document.querySelectorAll('#content a[href^="http"]').forEach(a => {
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+  });
+
+  buildToc();
+  showStatus('Loaded');
+}
+
+/* ===== Table of Contents ===== */
+function buildToc() {
+  const container = document.getElementById('content');
+  const headings = container.querySelectorAll('h1, h2, h3, h4, h5, h6');
+  const list = document.getElementById('toc-list');
+  list.innerHTML = '';
+  state.headings = [];
+
+  headings.forEach(h => {
+    const level = parseInt(h.tagName[1]);
+    const text = h.textContent;
+    if (!h.id) h.id = 'h-' + state.headings.length;
+
+    state.headings.push({ el: h, level, text });
+
+    const a = document.createElement('a');
+    a.className = 'toc-item l-' + level;
+    a.textContent = text;
+    a.addEventListener('click', () => {
+      h.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      closeToc();
+    });
+    list.appendChild(a);
+  });
+}
+
+function updateTocActive() {
+  const items = document.querySelectorAll('.toc-item');
+  items.forEach(el => el.classList.remove('active'));
+  const sy = window.scrollY;
+  let idx = -1;
+  for (let i = state.headings.length - 1; i >= 0; i--) {
+    if (state.headings[i].el.offsetTop <= sy + 80) { idx = i; break; }
+  }
+  if (idx >= 0 && items[idx]) {
+    items[idx].classList.add('active');
+    items[idx].scrollIntoView({ block: 'nearest' });
+  }
+}
+
+function nextHeading() {
+  if (!state.headings.length) return;
+  state.currentHeading = Math.min(state.currentHeading + 1, state.headings.length - 1);
+  state.headings[state.currentHeading].el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function prevHeading() {
+  if (!state.headings.length) return;
+  state.currentHeading = Math.max(state.currentHeading - 1, 0);
+  state.headings[state.currentHeading].el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/* ===== Overlays ===== */
+function toggleToc() {
+  state.tocOpen = !state.tocOpen;
+  document.getElementById('toc-overlay').classList.toggle('open', state.tocOpen);
+  if (state.tocOpen) updateTocActive();
+}
+function closeToc() { state.tocOpen = false; document.getElementById('toc-overlay').classList.remove('open'); }
+
+function toggleHelp() {
+  state.helpOpen = !state.helpOpen;
+  document.getElementById('help-overlay').classList.toggle('open', state.helpOpen);
+}
+function closeHelp() { state.helpOpen = false; document.getElementById('help-overlay').classList.remove('open'); }
+
+function closeAll() { closeToc(); closeHelp(); }
+
+function toggleWide() {
+  state.wideMode = !state.wideMode;
+  document.body.classList.toggle('wide', state.wideMode);
+  showStatus(state.wideMode ? 'Wide mode' : 'Fixed width');
+}
+
+/* ===== Status ===== */
+let stTimer;
+function showStatus(msg) {
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(stTimer);
+  stTimer = setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+/* ===== Keybindings ===== */
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+  if (e.key === 'Escape') { closeAll(); return; }
+
+  if (e.shiftKey && e.key === 'Tab') { e.preventDefault(); prevHeading(); return; }
+
+  switch (e.key) {
+    case 'g': window.scrollTo({ top: 0, behavior: 'smooth' }); state.currentHeading = -1; e.preventDefault(); break;
+    case 'G': window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); state.currentHeading = state.headings.length - 1; e.preventDefault(); break;
+    case 'j': window.scrollBy({ top: CONFIG.scrollStep, behavior: 'smooth' }); e.preventDefault(); break;
+    case 'k': window.scrollBy({ top: -CONFIG.scrollStep, behavior: 'smooth' }); e.preventDefault(); break;
+    case 'Tab': e.preventDefault(); nextHeading(); break;
+    case ' ': e.preventDefault(); toggleToc(); break;
+    case 't': e.preventDefault(); toggleTextColor(); break;
+    case 'b': e.preventDefault(); toggleBg(); break;
+    case 'r': e.preventDefault(); showStatus('Reloading…'); loadFile(); break;
+    case 'w': e.preventDefault(); toggleWide(); break;
+    case 'q': e.preventDefault(); window.close(); break;
+    case '?': e.preventDefault(); toggleHelp(); break;
+  }
+});
+
+/* ===== Load File ===== */
+function loadFile() {
+  if (!state.file) return;
+
+  fetch(state.file + '?_=' + Date.now())
+    .then(r => {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.text();
+    })
+    .then(text => {
+      if (text !== state.lastContent) {
+        state.lastContent = text;
+        render();
+      }
+    })
+    .catch(err => {
+      document.getElementById('content').innerHTML =
+        '<p style="text-align:center;margin-top:4rem;color:var(--accent)">Failed to load: ' +
+        escapeHtml(err.message) + '</p>';
+    });
+}
+
+/* ===== Init ===== */
+function init() {
+  const params = getParams();
+  state.file = params.file;
+  state.bgTransparent = params.bgTransparent;
+
+  applyTheme();
+  applyTextColor(params.textColor);
+
+  if (state.bgTransparent) document.body.classList.add('bg-transparent');
+
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
+
+  if (state.file) {
+    loadFile();
+    setInterval(loadFile, CONFIG.pollInterval);
+  }
+
+  window.addEventListener('scroll', () => {
+    if (state.tocOpen) updateTocActive();
+  });
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+
+})();
+</script>
+</body>
+</html>
