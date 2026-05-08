@@ -323,7 +323,8 @@ img { max-width: 100%; height: auto; border-radius: 12px; margin-bottom: 0.75em;
   padding: 1rem;
   overflow-x: auto;
 }
-.mermaid-inner svg { width: 100%; height: auto; }
+.mermaid-inner .mermaid { width: 100%; }
+.mermaid-inner svg { width: 100% !important; height: auto !important; }
 
 /* Maximize overlay */
 #mermaid-overlay {
@@ -841,14 +842,13 @@ function render() {
 
     try {
       mermaid.run({ nodes: document.querySelectorAll('.mermaid') }).then(() => {
-        /* Remove mermaid's explicit sizing */
+        /* Override mermaid's baked-in inline sizing */
         document.querySelectorAll('.mermaid svg').forEach(svg => {
           svg.removeAttribute('width');
           svg.removeAttribute('height');
-          svg.style.removeProperty('max-width');
-          svg.style.width = '100%';
-          svg.style.maxWidth = '100%';
-          svg.style.height = 'auto';
+          svg.style.setProperty('width', '100%', 'important');
+          svg.style.setProperty('max-width', '100%', 'important');
+          svg.style.setProperty('height', 'auto', 'important');
         });
 
         /* Wrap in container + header bar with controls */
