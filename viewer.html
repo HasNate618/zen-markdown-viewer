@@ -309,6 +309,63 @@ img { max-width: 100%; height: auto; border-radius: 12px; margin-bottom: 0.75em;
 /* ===== Mermaid ===== */
 .mermaid { background: transparent !important; }
 
+.mermaid-wrap {
+  background: rgba(6,6,6,0.4);
+  border: 1px solid var(--code-border);
+  border-radius: 12px;
+  margin-bottom: 0.75em;
+  overflow: hidden;
+}
+.mermaid-wrap .code-header { padding-left: 0.75rem; padding-right: 0.75rem; }
+.mermaid-inner {
+  display: flex;
+  justify-content: center;
+  padding: 1rem;
+  overflow-x: auto;
+}
+
+/* Maximize overlay */
+#mermaid-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(6,6,6,0.9);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+}
+#mermaid-overlay.open { display: flex; }
+#mermaid-overlay.grabbing { cursor: grabbing; }
+#mermaid-overlay .m-scale {
+  transition: transform 0.05s linear;
+}
+#mermaid-overlay .m-close {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(255,255,255,0.1);
+  border: none;
+  color: #fff;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  z-index: 301;
+  line-height: 1;
+}
+#mermaid-overlay .m-close:hover { background: rgba(255,255,255,0.2); }
+#mermaid-overlay .m-zoom-hint {
+  position: fixed;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(255,255,255,0.5);
+  font-size: 0.8rem;
+  z-index: 301;
+  pointer-events: none;
+}
+
 /* ===== TOC Overlay ===== */
 #toc-overlay {
   position: fixed;
@@ -514,6 +571,12 @@ img { max-width: 100%; height: auto; border-radius: 12px; margin-bottom: 0.75em;
     </div>
     <div id="help-footer"><button id="help-footer-btn">Close</button></div>
   </div>
+</div>
+
+<div id="mermaid-overlay">
+  <button class="m-close" id="m-close-btn">&times;</button>
+  <div class="m-scale"></div>
+  <div class="m-zoom-hint">Scroll to zoom &middot; Drag to pan</div>
 </div>
 
 <div id="status"></div>
@@ -780,6 +843,135 @@ function render() {
     } catch(e) { /* fallback */ }
   }
 
+  /* Mermaid header bar + controls */
+  document.querySelectorAll('#content .mermaid').forEach(m => {
+    const wrap = m.closest('.mermaid-wrap');
+    if (wrap) return; /* already processed */
+
+    const container = document.createElement('div');
+    container.className = 'mermaid-wrap';
+    m.parentElement.insertBefore(container, m);
+
+    const inner = document.createElement('div');
+    inner.className = 'mermaid-inner';
+    container.appendChild(inner);
+
+    inner.appendChild(m);
+
+    const source = m.textContent;
+
+    /* header */
+    const header = document.createElement('div');
+    header.className = 'code-header';
+
+    const lang = document.createElement('span');
+    lang.className = 'lang';
+    lang.textContent = 'MERMAID';
+    header.appendChild(lang);
+
+    const btnGroup = document.createElement('div');
+    btnGroup.style.cssText = 'display:flex;gap:0.5rem;align-items:center';
+
+    /* copy */
+    const copyBtn = mkIconBtn('copy', source, 'Copy source');
+    btnGroup.appendChild(copyBtn);
+
+    /* download SVG */
+    const svgEl = m.querySelector('svg');
+    const dlBtn = mkIconBtn('download', svgEl, 'Download SVG');
+    btnGroup.appendChild(dlBtn);
+
+    /* maximize */
+    const maxBtn = mkIconBtn('maximize', { el: svgEl, source }, 'Maximize');
+    btnGroup.appendChild(maxBtn);
+
+    header.appendChild(btnGroup);
+    container.insertBefore(header, container.firstChild);
+  });
+
+  function mkIconBtn(type, data, title) {
+    const b = document.createElement('button');
+    b.className = 'copy-btn';
+    b.title = title;
+    const icons = {
+      copy: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+      check: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+      download: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
+      maximize: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>',
+    };
+    b.innerHTML = icons[type] || '';
+
+    b.addEventListener('click', () => {
+      if (type === 'copy') {
+        const text = typeof data === 'string' ? data : '';
+        navigator.clipboard.writeText(text).then(() => {
+          b.innerHTML = icons.check;
+          b.classList.add('copied');
+          setTimeout(() => { b.innerHTML = icons[type]; b.classList.remove('copied'); }, 1500);
+        }).catch(() => {});
+      } else if (type === 'download') {
+        if (!data) return;
+        const svgData = data.outerHTML || data;
+        const blob = new Blob(['<?xml version="1.0" encoding="UTF-8"?>\n' + svgData], { type: 'image/svg+xml' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'diagram.svg';
+        a.click();
+        URL.revokeObjectURL(url);
+        b.innerHTML = icons.check;
+        b.classList.add('copied');
+        setTimeout(() => { b.innerHTML = icons[type]; b.classList.remove('copied'); }, 1500);
+      } else if (type === 'maximize') {
+        openMaximize(data);
+      }
+    });
+    return b;
+  }
+
+  function openMaximize(data) {
+    const svgStr = data.el ? data.el.outerHTML : data.source;
+    const ov = document.getElementById('mermaid-overlay');
+    const content = ov.querySelector('.m-scale');
+    content.innerHTML = svgStr;
+    /* reattach svg so scripts/defs work */
+    const svg = content.querySelector('svg');
+    if (svg) {
+      svg.style.maxWidth = '90vw';
+      svg.style.maxHeight = '90vh';
+      svg.style.width = 'auto';
+      svg.style.height = 'auto';
+    }
+
+    let panX = 0, panY = 0, zoom = 1;
+    let isPan = false, startX, startY;
+
+    function update() {
+      content.style.transform = 'translate(' + panX + 'px,' + panY + 'px) scale(' + zoom + ')';
+    }
+    update();
+
+    ov.classList.add('open');
+
+    ov.onwheel = e => {
+      e.preventDefault();
+      const dir = e.deltaY > 0 ? -0.1 : 0.1;
+      zoom = Math.max(0.2, Math.min(5, zoom + dir));
+      update();
+    };
+    ov.onmousedown = e => {
+      isPan = true; startX = e.clientX - panX; startY = e.clientY - panY;
+      ov.classList.add('grabbing');
+    };
+    ov.onmousemove = e => {
+      if (!isPan) return;
+      panX = e.clientX - startX; panY = e.clientY - startY;
+      update();
+    };
+    ov.onmouseup = () => { isPan = false; ov.classList.remove('grabbing'); };
+    ov.onmouseleave = () => { isPan = false; ov.classList.remove('grabbing'); };
+  }
+
   /* Wrap tables for horizontal scroll, add copy button */
   document.querySelectorAll('#content table').forEach(tbl => {
     if (!tbl.parentElement.classList.contains('table-wrap')) {
@@ -940,6 +1132,8 @@ document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
   if (e.key === 'Escape') {
+    const mo = document.getElementById('mermaid-overlay');
+    if (mo.classList.contains('open')) { mo.classList.remove('open'); e.preventDefault(); return; }
     if (state.tocOpen) { closeToc(); e.preventDefault(); return; }
     toggleHelp();
     e.preventDefault();
@@ -1011,6 +1205,16 @@ function init() {
   /* Help overlay close buttons */
   document.getElementById('help-close-btn').addEventListener('click', closeHelp);
   document.getElementById('help-footer-btn').addEventListener('click', closeHelp);
+
+  /* Maximize overlay close */
+  document.getElementById('m-close-btn').addEventListener('click', () => {
+    document.getElementById('mermaid-overlay').classList.remove('open');
+  });
+  document.getElementById('mermaid-overlay').addEventListener('click', e => {
+    if (e.target === e.currentTarget) {
+      document.getElementById('mermaid-overlay').classList.remove('open');
+    }
+  });
 }
 
 if (document.readyState === 'loading') {
