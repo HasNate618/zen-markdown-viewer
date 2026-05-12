@@ -39,7 +39,6 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# Search order: same dir as script (dev), then installed data dirs
 VIEWER_DIRS=(
   "$SCRIPT_DIR"
   "$HOME/.local/share/zen-markdown-viewer"
@@ -62,35 +61,33 @@ if [ ! -f "$VIEWER" ]; then
   exit 1
 fi
 
-# --- temp dir ----------------------------------------------------------------
+# --- resolve file, set server root -------------------------------------------
 
-TMPDIR=$(mktemp -d /tmp/zen-md.XXXXXX) || exit 1
-cp -a "$VIEWER" "$TMPDIR/" || { echo "Failed to copy viewer.html" >&2; rm -rf "$TMPDIR"; exit 1; }
-
-# --- resolve markdown file ---------------------------------------------------
-
-tmp_md="$TMPDIR/doc.md"
 case "$arg" in
   http://*|https://*)
+    TMPDIR=$(mktemp -d /tmp/zen-md.XXXXXX) || exit 1
+    cp -a "$VIEWER" "$TMPDIR/viewer.html" || { rm -rf "$TMPDIR"; exit 1; }
     if command -v curl >/dev/null 2>&1; then
-      curl -L --fail --silent --show-error -o "$tmp_md" "$arg" \
-        || { echo "curl failed to download $arg" >&2; rm -rf "$TMPDIR"; exit 1; }
+      curl -L --fail --silent --show-error -o "$TMPDIR/doc.md" "$arg" \
+        || { rm -rf "$TMPDIR"; exit 1; }
     elif command -v wget >/dev/null 2>&1; then
-      wget -q -O "$tmp_md" "$arg" \
-        || { echo "wget failed to download $arg" >&2; rm -rf "$TMPDIR"; exit 1; }
+      wget -q -O "$TMPDIR/doc.md" "$arg" \
+        || { rm -rf "$TMPDIR"; exit 1; }
     else
-      echo "No curl or wget found; cannot download remote files" >&2
-      rm -rf "$TMPDIR"; exit 1
+      echo "No curl or wget found" >&2; rm -rf "$TMPDIR"; exit 1
     fi
-    ;;
-  file://*)
-    fp="${arg#file://}"
-    fp="$(realpath_x "$fp")"
-    cp -a "$fp" "$tmp_md" || { echo "Failed to copy $fp" >&2; rm -rf "$TMPDIR"; exit 1; }
+    SERVE_DIR="$TMPDIR"
+    VHREF="viewer.html"
+    ENC_FILE="doc.md"
     ;;
   *)
-    fp="$(realpath_x "$arg")"
-    cp -a "$fp" "$tmp_md" || { echo "Failed to copy $fp" >&2; rm -rf "$TMPDIR"; exit 1; }
+    [ "$arg" != "${arg#file://}" ] && fp="${arg#file://}" || fp="$arg"
+    fp="$(realpath_x "$fp")"
+    SERVE_DIR="$(dirname "$fp")"
+    BASENAME="$(basename "$fp")"
+    VHREF=".zen-md-viewer.html"
+    ln -sf "$VIEWER" "$SERVE_DIR/$VHREF"
+    ENC_FILE=$(urlencode "$BASENAME")
     ;;
 esac
 
@@ -105,28 +102,27 @@ s.close()
 PY
 )
 
-nohup python3 -m http.server "$PORT" --bind 127.0.0.1 --directory "$TMPDIR" \
+nohup python3 -m http.server "$PORT" --bind 127.0.0.1 --directory "$SERVE_DIR" \
   >/dev/null 2>&1 &
 SERVER_PID=$!
 
 ready=0
 for _ in $(seq 1 30); do
-  if curl -fsS "http://127.0.0.1:$PORT/viewer.html" >/dev/null 2>&1; then
+  if curl -fsS "http://127.0.0.1:$PORT/$VHREF" >/dev/null 2>&1; then
     ready=1; break
   fi
   sleep 0.1
 done
 
 if [ "$ready" -ne 1 ]; then
-  echo "Local viewer server did not start in time" >&2
+  echo "Server did not start in time" >&2
   exit 1
 fi
 
 # --- open browser ------------------------------------------------------------
 
-enc_file=$(urlencode "doc.md")
-URL="http://127.0.0.1:$PORT/viewer.html?file=$enc_file"
+URL="http://127.0.0.1:$PORT/$VHREF?file=$ENC_FILE"
 
 $OPEN_CMD "$URL" >/dev/null 2>&1 &
-printf 'Zen Markdown viewer: %s  (server pid %s, tmpdir %s)\n' "$URL" "$SERVER_PID" "$TMPDIR" >&2
+printf 'Zen Markdown viewer: %s  (server pid %s)\n' "$URL" "$SERVER_PID" >&2
 exit 0
