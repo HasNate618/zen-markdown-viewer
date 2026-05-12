@@ -22,7 +22,7 @@ echo "Installed launcher to $BIN_DIR/zen-markdown-viewer"
 
 # --- ensure .md is recognised as text/markdown ---
 mkdir -p "$MIME_DIR"
-cat > "$MIME_DIR/zen-markdown-viewer.xml" << EOF
+cat > "$MIME_DIR/zen-markdown-viewer.xml" << XEOF
 <?xml version="1.0" encoding="UTF-8"?>
 <mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
   <mime-type type="text/markdown">
@@ -31,20 +31,20 @@ cat > "$MIME_DIR/zen-markdown-viewer.xml" << EOF
     <glob pattern="*.markdown"/>
   </mime-type>
 </mime-info>
-EOF
+XEOF
 
 # --- desktop entry ---
 mkdir -p "$APP_DIR"
-cat > "$APP_DIR/zen-markdown-viewer.desktop" << EOF
+cat > "$APP_DIR/zen-markdown-viewer.desktop" << XEOF
 [Desktop Entry]
 Name=Zen Markdown Viewer
 Exec=$BIN_DIR/zen-markdown-viewer %f
 Terminal=false
 Type=Application
-MimeType=text/markdown;text/x-markdown;text/html;text/plain;
+MimeType=text/markdown;text/x-markdown;
 Categories=Utility;TextEditor;
 StartupNotify=false
-EOF
+XEOF
 
 echo "Created desktop entry: $APP_DIR/zen-markdown-viewer.desktop"
 
@@ -53,7 +53,7 @@ if command -v update-mime-database >/dev/null 2>&1; then
   update-mime-database "$DOC_DIR/mime" 2>/dev/null || true
 fi
 
-for mime in text/markdown text/x-markdown text/html text/plain; do
+for mime in text/markdown text/x-markdown; do
   if command -v xdg-mime >/dev/null 2>&1; then
     xdg-mime default zen-markdown-viewer.desktop "$mime" 2>/dev/null || true
   fi
