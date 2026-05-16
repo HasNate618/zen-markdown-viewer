@@ -77,21 +77,20 @@ case "$arg" in
       echo "No curl or wget found" >&2; rm -rf "$TMPDIR"; exit 1
     fi
     SERVE_DIR="$TMPDIR"
-    VHREF="viewer.html"
+    VIEWER_PATH="$TMPDIR/viewer.html"
     ENC_FILE="doc.md"
     ;;
   *)
     [ "$arg" != "${arg#file://}" ] && fp="${arg#file://}" || fp="$arg"
     fp="$(realpath_x "$fp")"
     SERVE_DIR="$(dirname "$fp")"
+    VIEWER_PATH="$VIEWER"
     BASENAME="$(basename "$fp")"
-    VHREF=".zen-md-viewer.html"
-    ln -sf "$VIEWER" "$SERVE_DIR/$VHREF"
     ENC_FILE=$(urlencode "$BASENAME")
     ;;
 esac
 
-# --- find a free port and start the server -----------------------------------
+# --- find a free port --------------------------------------------------------
 
 PORT=$(python3 - <<'PY'
 import socket
@@ -102,13 +101,41 @@ s.close()
 PY
 )
 
-nohup python3 -m http.server "$PORT" --bind 127.0.0.1 --directory "$SERVE_DIR" \
-  >/dev/null 2>&1 &
+# --- start custom HTTP server ------------------------------------------------
+
+nohup python3 - "$VIEWER_PATH" "$SERVE_DIR" "$PORT" <<'PYTHON' >/dev/null 2>&1 &
+import http.server
+import os
+import sys
+import urllib.parse
+
+viewer_path = os.path.realpath(sys.argv[1])
+serve_dir = os.path.realpath(sys.argv[2])
+port = int(sys.argv[3])
+
+class ZenHandler(http.server.SimpleHTTPRequestHandler):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, directory=serve_dir, **kwargs)
+
+    def translate_path(self, path):
+        if urllib.parse.urlparse(path).path == '/.zv':
+            return viewer_path
+        return super().translate_path(path)
+
+    def log_message(self, fmt, *args):
+        sys.stderr.write("[zen-md] %s\n" % (fmt % args))
+
+with http.server.HTTPServer(("127.0.0.1", port), ZenHandler) as httpd:
+    httpd.serve_forever()
+PYTHON
+
 SERVER_PID=$!
+
+# --- wait for server to be ready ---------------------------------------------
 
 ready=0
 for _ in $(seq 1 30); do
-  if curl -fsS "http://127.0.0.1:$PORT/$VHREF" >/dev/null 2>&1; then
+  if curl -fsS "http://127.0.0.1:$PORT/.zv" >/dev/null 2>&1; then
     ready=1; break
   fi
   sleep 0.1
@@ -121,7 +148,7 @@ fi
 
 # --- open browser ------------------------------------------------------------
 
-URL="http://127.0.0.1:$PORT/$VHREF?file=$ENC_FILE"
+URL="http://127.0.0.1:$PORT/.zv?file=$ENC_FILE"
 
 $OPEN_CMD "$URL" >/dev/null 2>&1 &
 printf 'Zen Markdown viewer: %s  (server pid %s)\n' "$URL" "$SERVER_PID" >&2
