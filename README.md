@@ -30,6 +30,49 @@ A lightweight, keyboard-first markdown viewer that renders `.md` files as styled
 
 ## Installation
 
+### Nix
+
+Install from the flake (requires [flakes](https://nix.dev/concepts/flakes.html) enabled):
+
+```bash
+nix profile install github:HasNate618/zen-markdown-viewer
+```
+
+Or build and run from a local checkout:
+
+```bash
+git clone https://github.com/HasNate618/zen-markdown-viewer.git
+cd zen-markdown-viewer
+nix run . -- /path/to/file.md
+```
+
+For a one-off install into your profile:
+
+```bash
+nix profile install .
+```
+
+The package installs `zen-markdown-viewer` on your `PATH` with `viewer.html` bundled in the Nix store. Python 3, curl, and `xdg-open` (Linux) are wrapped automatically.
+
+**NixOS / home-manager** — add the flake as an input and reference `packages.${pkgs.system}.default`, or use an overlay:
+
+```nix
+# flake.nix inputs
+zen-markdown-viewer.url = "github:HasNate618/zen-markdown-viewer";
+
+# configuration
+environment.systemPackages = [ inputs.zen-markdown-viewer.packages.${pkgs.system}.default ];
+```
+
+**Dev shell** — for hacking on `viewer.html` without installing:
+
+```bash
+nix develop
+python3 -m http.server 8765 --bind 127.0.0.1
+```
+
+---
+
 ### Linux
 
 1. **Clone the repository:**

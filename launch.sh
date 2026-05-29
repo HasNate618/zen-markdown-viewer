@@ -39,7 +39,11 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-VIEWER_DIRS=(
+VIEWER_DIRS=()
+if [ -n "${ZEN_MARKDOWN_VIEWER_DATA_DIR:-}" ]; then
+  VIEWER_DIRS+=("$ZEN_MARKDOWN_VIEWER_DATA_DIR")
+fi
+VIEWER_DIRS+=(
   "$SCRIPT_DIR"
   "$HOME/.local/share/zen-markdown-viewer"
   "$HOME/Library/Application Support/zen-markdown-viewer"

@@ -14,6 +14,7 @@ Any new assets should live in a dedicated folder (suggested: vendor/ or assets/)
 Support files generated during runtime live in /tmp and must never be committed back into this repository.
 
 ## Commands
+- Nix package: `nix run . -- test.md` or `nix develop` for a dev shell with python3/curl.
 - Start the local HTTP preview server: `python3 -m http.server 8000 --bind 127.0.0.1` from the repo root.
 - Use the launcher for integration: `./launch.sh /path/to/file.md` from the repo root.
 - Reload the viewer via `xdg-open http://127.0.0.1:8000/viewer.html?file=test.md` when testing manual tweaks.
